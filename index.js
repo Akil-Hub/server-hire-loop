@@ -35,18 +35,19 @@ async function run() {
     const database = client.db('hire-loop-website')
     const jobCollection = database.collection('jobs')
     const companyCollection = database.collection('companies')
+    const userCollection = database.collection('user')
 
     // JOB RELATED APIS
 
-
-    // POST
-    app.post('/api/jobs',async (req,res)=>{
-        const job = req.body
-        const result = await jobCollection.insertOne(job)
-        res.send(result)
-
+    app.get('/api/users',async(req,res)=>{
+      const cursor = userCollection.find().skip(3)
+      const result = await cursor.toArray()
+      res.send(result)
     })
-    // GET API for getting the company individual company jobs
+
+
+
+     // GET API for getting the company individual company jobs
 
     app.get('/api/jobs',async(req,res)=>{
         const query = {};
@@ -65,13 +66,56 @@ async function run() {
     })
 
 
+
+    // POST
+    app.post('/api/jobs',async (req,res)=>{
+        const job = req.body
+        const newJob ={
+          ...job,
+          createdAt: new Date()
+        }
+        const result = await jobCollection.insertOne(newJob)
+        res.send(result)
+
+    })
+   
+
     // COMPANY RELATED APIS
     // Post 
     app.post('/api/companies',async(req,res)=>{
         const company = req.body
-        const result = await companyCollection.insertOne(company)
+        const newCompany = {
+          ...company,
+          createdAt: new Date()
+        }
+        const result = await companyCollection.insertOne(newCompany)
         res.send(result)
+
     })
+
+    // Get the company
+    
+    app.get('/api/my/companies',async(req,res)=>{
+        const {recruiterId} = req.query
+  
+          if (!recruiterId) {
+        return res.status(400).json({
+            message: 'recruiterId is required'
+        });
+    }
+        const result = await companyCollection.findOne({recruiterId})
+        res.send(result || {})
+
+
+    })
+
+    // get all companies
+    app.get('/api/companies',async(req,res)=>{
+      const cursor =  companyCollection.find()
+      const result = await cursor.toArray()
+      res.send(result)
+    })
+
 
 
 
