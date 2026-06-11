@@ -1,6 +1,6 @@
 const express = require('express')
 const app = express()
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 require('dotenv').config()
 const cors = require('cors')
 
@@ -37,6 +37,8 @@ async function run() {
     const companyCollection = database.collection('companies')
     const userCollection = database.collection('user')
 
+    const applicationCollection = database.collection('applications')
+
     // JOB RELATED APIS
 
     app.get('/api/users',async(req,res)=>{
@@ -65,6 +67,17 @@ async function run() {
 
     })
 
+    // get single job details page id
+    app.get('/api/jobs/:id',async(req,res)=>{
+      const id = req.params.id;
+      const query = {
+        _id: new ObjectId(id)
+
+      }
+      const result = await jobCollection.findOne(query)
+      res.send(result)
+    })
+
 
 
     // POST
@@ -78,7 +91,36 @@ async function run() {
         res.send(result)
 
     })
+
+    // APPLICATIO RELATED APIS
+
+    // POST
+    app.post('/api/applications',async(req,res)=>{
+      const application = req.body;
+      const newApplication ={
+        ...application,
+        createdAt : new Date()
+
+      }
+      const result = await applicationCollection.insertOne(newApplication)
+      res.send(result)
+    })
    
+    // GET
+    app.get('/api/applications',async(req,res)=>{
+      const query = {}
+      if (req.query.applicationId) {
+        query.applicationId = req.query.applicationId
+        
+      }
+      if (req.query.jobId) {
+        query.jobId = req.query.jobId
+        
+      }
+      const cursor = applicationCollection.find(query)
+      const result = await cursor.toArray()
+      res.send(result)
+    })
 
     // COMPANY RELATED APIS
     // Post 
