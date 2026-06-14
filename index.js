@@ -43,7 +43,7 @@ async function run() {
 
     // JOB RELATED APIS
 
-    app.get('/api/users',async(req,res)=>{
+    app.get('/api/users', async (req, res) => {
       const cursor = userCollection.find().skip(3)
       const result = await cursor.toArray()
       res.send(result)
@@ -51,26 +51,26 @@ async function run() {
 
 
 
-     // GET API for getting the company individual company jobs
+    // GET API for getting the company individual company jobs
 
-    app.get('/api/jobs',async(req,res)=>{
-        const query = {};
-        if (req.query.companyId) {
-            query.companyId = req.query.companyId
-            
-        }
-        if (req.query.status) {
-            query.status = req.query.status
-            
-        }
-        const cursor = jobCollection.find(query)
-        const result = await cursor.toArray()
-        res.send(result)
+    app.get('/api/jobs', async (req, res) => {
+      const query = {};
+      if (req.query.companyId) {
+        query.companyId = req.query.companyId
+
+      }
+      if (req.query.status) {
+        query.status = req.query.status
+
+      }
+      const cursor = jobCollection.find(query)
+      const result = await cursor.toArray()
+      res.send(result)
 
     })
 
     // get single job details page id
-    app.get('/api/jobs/:id',async(req,res)=>{
+    app.get('/api/jobs/:id', async (req, res) => {
       const id = req.params.id;
       const query = {
         _id: new ObjectId(id)
@@ -83,43 +83,43 @@ async function run() {
 
 
     // POST
-    app.post('/api/jobs',async (req,res)=>{
-        const job = req.body
-        const newJob ={
-          ...job,
-          createdAt: new Date()
-        }
-        const result = await jobCollection.insertOne(newJob)
-        res.send(result)
+    app.post('/api/jobs', async (req, res) => {
+      const job = req.body
+      const newJob = {
+        ...job,
+        createdAt: new Date()
+      }
+      const result = await jobCollection.insertOne(newJob)
+      res.send(result)
 
     })
 
     // APPLICATIO RELATED APIS
 
     // POST
-    app.post('/api/applications',async(req,res)=>{
+    app.post('/api/applications', async (req, res) => {
       const application = req.body;
-      const newApplication ={
+      const newApplication = {
         ...application,
-        createdAt : new Date()
+        createdAt: new Date()
 
       }
       const result = await applicationCollection.insertOne(newApplication)
       res.send(result)
     })
-   
+
     // GET
-    app.get('/api/applications',async(req,res)=>{
+    app.get('/api/applications', async (req, res) => {
       const query = {}
       if (req.query.applicationId) {
         query.applicationId = req.query.applicationId
-        
+
       }
       if (req.query.jobId) {
         query.jobId = req.query.jobId
-        
+
       }
-          if (req.query.applicantId) query.applicantId = req.query.applicantId // ← missing
+      if (req.query.applicantId) query.applicantId = req.query.applicantId // ← missing
 
       const cursor = applicationCollection.find(query)
       const result = await cursor.toArray()
@@ -128,91 +128,132 @@ async function run() {
 
     // COMPANY RELATED APIS
     // Post 
-    app.post('/api/companies',async(req,res)=>{
-        const company = req.body
-        const newCompany = {
-          ...company,
-          createdAt: new Date()
-        }
-        const result = await companyCollection.insertOne(newCompany)
-        res.send(result)
+    app.post('/api/companies', async (req, res) => {
+      const company = req.body
+      const newCompany = {
+        ...company,
+        createdAt: new Date()
+      }
+      const result = await companyCollection.insertOne(newCompany)
+      res.send(result)
 
     })
 
     // Get the company
-    
-    app.get('/api/my/companies',async(req,res)=>{
-        const {recruiterId} = req.query
-  
-          if (!recruiterId) {
+
+    app.get('/api/my/companies', async (req, res) => {
+      const { recruiterId } = req.query
+
+      if (!recruiterId) {
         return res.status(400).json({
-            message: 'recruiterId is required'
+          message: 'recruiterId is required'
         });
-    }
-        const result = await companyCollection.findOne({recruiterId})
-        res.send(result || {})
+      }
+      const result = await companyCollection.findOne({ recruiterId })
+      res.send(result || {})
 
 
     })
 
     // get all companies
-    app.get('/api/companies',async(req,res)=>{
-      const cursor =  companyCollection.find()
-      const result = await cursor.toArray()
+    // app.get('/api/companies', async (req, res) => {
+    //   const cursor = companyCollection.find()
+    //   const result = await cursor.toArray()
+    //   res.send(result)
+    // })
+
+
+
+    // bad system to get to add the job count in  the comapny 
+    app.get('/api/companies', async (req, res) => {
+
+      const cursor = companyCollection.find()
+
+
+
+      const companies = await cursor.toArray()
+      for (const company  of companies) {
+
+        const filter = {
+          companyId : company._id.toString()
+        }
+
+
+        const jobCount = await jobCollection.countDocuments(filter)
+        company.jobCount = jobCount
+        
+      }
+
+      res.send(companies)
+    })
+
+    app.put('/api/companies/:id', async (req, res) => {
+      const { id } = req.params
+      const payload = req.body
+      const result = await companyCollection.updateOne(
+        { _id: new ObjectId(id) },
+        { $set: payload }
+      )
       res.send(result)
     })
 
-app.put('/api/companies/:id', async (req, res) => {
-    const { id } = req.params
-    const payload = req.body
-    const result = await companyCollection.updateOne(
-        { _id: new ObjectId(id) },
-        { $set: payload }
-    )
-    res.send(result)
-})
+
+    // Update the company
+
+    app.patch('/api/companies/:id', async (req, res) => {
+      const id = req.params.id;
+      const updatedCompany = req.body;
+      const filter = { _id: new ObjectId(id) }
+      const updatedDoc = {
+        $set: {
+          status: updatedCompany.status
+        }
+      }
+      const result = await companyCollection.updateOne(filter, updatedDoc)
+      res.send(result)
+    })
 
 
-// plans related apis
+    // plans related apis
 
-app.get('/api/plans',async(req,res)=>{
-  const query = {}
-  if (req.query.plan_id) {
-    query.id = req.query.plan_id
-    
-  }
-  const plan = await planCollection.findOne(query)
-  res.send(plan)
-})
+    app.get('/api/plans', async (req, res) => {
+      const query = {}
+      if (req.query.plan_id) {
+        query.id = req.query.plan_id
 
-// subscriptons
-app.post('/api/subscriptions',async(req,res)=>{
-  const data = req.body;
-  const subsInfo = {
-    ...data,
-    createdAt: new Date()
-  }
-  const result = await subscriptionCollection.insertOne(subsInfo)
+      }
+      const plan = await planCollection.findOne(query)
+      res.send(plan)
+    })
 
-  // update the user plan informaton 
+    // subscriptons
+    app.post('/api/subscriptions', async (req, res) => {
+      const data = req.body;
+      const subsInfo = {
+        ...data,
+        createdAt: new Date()
+      }
+      const result = await subscriptionCollection.insertOne(subsInfo)
 
-  const filter = {email:data.email}
+      // update the user plan informaton 
 
-  const updateDocument = {
-    $set:{
-      plan:data.planId,
-    }
-  }
+      const filter = { email: data.email }
 
-  const updateResult = await userCollection.updateOne(filter,updateDocument)
+      const updateDocument = {
+        $set: {
+          plan: data.planId,
+        }
+      }
 
-
-  res.send(updateResult)
+      const updateResult = await userCollection.updateOne(filter, updateDocument)
 
 
+      res.send(updateResult)
 
 
-})
+
+
+    })
 
 
 
