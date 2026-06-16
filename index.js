@@ -14,7 +14,13 @@ app.get('/', (req, res) => {
 })
 
 
+// middlewares 
 
+const logger = (req, res, next) => {
+  console.log('logger logged middleware is actevated', req.params)
+  next()
+
+}
 
 
 
@@ -40,6 +46,75 @@ async function run() {
     const subscriptionCollection = database.collection('subscriptions')
 
     const applicationCollection = database.collection('applications')
+    const sessionCollection = database.collection('session')
+
+
+    // Vefiry toekn 
+
+    const verifyToken = async (req, res, next) => {
+
+      const authHeader = req.headers?.authorization;
+      if (!authHeader) {
+
+        return res.status(401).send({ message: 'Unauthorized Access' })
+
+      }
+
+      const token = authHeader.split(' ')[1]
+      if (!token) {
+        return res.status(401).send({ message: 'Unauthorized Access.' })
+
+      }
+
+      const query = { token: token }
+      const session = await sessionCollection.findOne(query)
+      if (!session) {
+        return res.status(401).json({ message: 'Session not found or expired.' });
+      }
+
+      const userId = session.userId
+
+      const userQuery = {
+        _id: userId
+      }
+      const user = await userCollection.findOne(userQuery)
+
+
+      // set data in the req object
+
+      req.userId = session.userId
+      next()
+
+    }
+
+    const verifySeeker = async(req,res,next )=>{
+      if (req.user?.role !== 'seeker') {
+        return res.status(403).send({message:"Forbidden Access."})
+        
+      }
+      next()
+    }
+
+    const verifyAdmin = async(req,res,next)=>{
+      console.log(req.user)
+
+      if (req.user?.role !== 'admin') {
+        return res.status(403).send({message:'Forbidded Access.'})
+
+        
+      }
+      next()
+    }
+
+    const verifyRecruiter = async(req,res,next)=>{
+
+      if (req.user?.role !== 'recruiter') {
+        return res.status(403).send({message:'Forbidded Access.'})
+
+        
+      }
+      next()
+    }
 
     // JOB RELATED APIS
 
@@ -94,6 +169,7 @@ async function run() {
 
     })
 
+
     // APPLICATIO RELATED APIS
 
     // POST
@@ -109,10 +185,16 @@ async function run() {
     })
 
     // GET
-    app.get('/api/applications', async (req, res) => {
+    app.get('/api/applications',logger,verifyToken,verifySeeker, async (req, res) => {
       const query = {}
       if (req.query.applicationId) {
         query.applicationId = req.query.applicationId
+
+        // check whether asking for user information of someone else 
+          if (req.user._id.toString() !== req.query.applicantId) {
+            return res.status(403).send({message:'forbidden Access.'})
+            
+          }
 
       }
       if (req.query.jobId) {
@@ -125,6 +207,7 @@ async function run() {
       const result = await cursor.toArray()
       res.send(result)
     })
+
 
     // COMPANY RELATED APIS
     // Post 
@@ -165,27 +248,28 @@ async function run() {
 
 
     // bad system to get to add the job count in  the comapny 
-    app.get('/api/companies', async (req, res) => {
+    app.get('/api/companies',
+      verifyToken, async (req, res) => {
 
-      const cursor = companyCollection.find()
+        const cursor = companyCollection.find()
 
 
 
-      const companies = await cursor.toArray()
-      for (const company  of companies) {
+        const companies = await cursor.toArray()
+        for (const company of companies) {
 
-        const filter = {
-          companyId : company._id.toString()
+          const filter = {
+            companyId: company._id.toString()
+          }
+
+
+          const jobCount = await jobCollection.countDocuments(filter)
+          company.jobCount = jobCount
+
         }
 
-
-        const jobCount = await jobCollection.countDocuments(filter)
-        company.jobCount = jobCount
-        
-      }
-
-      res.send(companies)
-    })
+        res.send(companies)
+      })
 
     app.put('/api/companies/:id', async (req, res) => {
       const { id } = req.params
@@ -198,9 +282,10 @@ async function run() {
     })
 
 
+
     // Update the company
 
-    app.patch('/api/companies/:id', async (req, res) => {
+    app.patch('/api/companies/:id',logger, verifyToken,verifyAdmin, async (req, res) => {
       const id = req.params.id;
       const updatedCompany = req.body;
       const filter = { _id: new ObjectId(id) }
