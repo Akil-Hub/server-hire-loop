@@ -108,7 +108,7 @@ async function run() {
     }
 
 
-    // must be used after verifying token middleware
+    // must be used after verifying token middlewarere
 
     const verifyRecruiter = async (req, res, next) => {
 
