@@ -83,35 +83,39 @@ async function run() {
       // set data in the req object
 
       req.userId = session.userId
+      req.user = user
       next()
 
     }
-
-    const verifySeeker = async(req,res,next )=>{
+    // must be used after verifying token middleware
+    const verifySeeker = async (req, res, next) => {
       if (req.user?.role !== 'seeker') {
-        return res.status(403).send({message:"Forbidden Access."})
-        
+        return res.status(403).send({ message: "Forbidden Access." })
+
       }
       next()
     }
 
-    const verifyAdmin = async(req,res,next)=>{
-      console.log(req.user)
+    // must be used after verifying token middleware
+    const verifyAdmin = async (req, res, next) => {
 
       if (req.user?.role !== 'admin') {
-        return res.status(403).send({message:'Forbidded Access.'})
+        return res.status(403).send({ message: 'Forbidded Access.' })
 
-        
+
       }
       next()
     }
 
-    const verifyRecruiter = async(req,res,next)=>{
+
+    // must be used after verifying token middleware
+
+    const verifyRecruiter = async (req, res, next) => {
 
       if (req.user?.role !== 'recruiter') {
-        return res.status(403).send({message:'Forbidded Access.'})
+        return res.status(403).send({ message: 'Forbidded Access.' })
 
-        
+
       }
       next()
     }
@@ -185,16 +189,16 @@ async function run() {
     })
 
     // GET
-    app.get('/api/applications',logger,verifyToken,verifySeeker, async (req, res) => {
+    app.get('/api/applications', logger, verifyToken, verifySeeker, async (req, res) => {
       const query = {}
       if (req.query.applicationId) {
         query.applicationId = req.query.applicationId
 
         // check whether asking for user information of someone else 
-          if (req.user._id.toString() !== req.query.applicantId) {
-            return res.status(403).send({message:'forbidden Access.'})
-            
-          }
+        if (req.user._id.toString() !== req.query.applicantId) {
+          return res.status(403).send({ message: 'forbidden Access.' })
+
+        }
 
       }
       if (req.query.jobId) {
@@ -285,7 +289,7 @@ async function run() {
 
     // Update the company
 
-    app.patch('/api/companies/:id',logger, verifyToken,verifyAdmin, async (req, res) => {
+    app.patch('/api/companies/:id', logger, verifyToken, verifyAdmin, async (req, res) => {
       const id = req.params.id;
       const updatedCompany = req.body;
       const filter = { _id: new ObjectId(id) }
