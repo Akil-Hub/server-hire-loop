@@ -101,8 +101,6 @@ async function run() {
 
       if (req.user?.role !== 'admin') {
         return res.status(403).send({ message: 'Forbidded Access.' })
-
-
       }
       next()
     }
@@ -114,7 +112,6 @@ async function run() {
 
       if (req.user?.role !== 'recruiter') {
         return res.status(403).send({ message: 'Forbidded Access.' })
-
 
       }
       next()
