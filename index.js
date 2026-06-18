@@ -253,7 +253,7 @@ async function run() {
 
     // bad system to get to add the job count in  the comapny 
     app.get('/api/companies',
-      verifyToken, async (req, res) => {
+      verifyToken,verifyAdmin, async (req, res) => {
 
         const cursor = companyCollection.find()
 
